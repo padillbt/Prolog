@@ -166,5 +166,107 @@ do_nlp_helper(Stop) :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],
 % Count the students that are <gender>
 count_gender(Gender,X) :- grade(_,Gender,_), findall(Person, grade(_,Gender,_),People), length(People, X), !.
 
+highest_grade(X) :-
+  grade(_, _, X),
+  findall(Score, grade(_, _, Score), Scores),
+  forall(member(Score, Scores), X >= Score).
 
-parse(Parameters)
+highest_adjective(highest).
+highest_adjective(largest).
+highest_adjective(biggest).
+highest_adjective(best).
+highest_adjective(top).
+
+lowest_grade(X) :-
+  grade(_, _, X),
+  findall(Score, grade(_, _, Score), Scores),
+  forall(member(Score, Scores), Score >= X).
+
+lowest_adjective(lowest).
+lowest_adjective(smallest).
+lowest_adjective(worst).
+lowest_adjective(bottom).
+
+parse([who|Query], Result) :-
+  grade(Result, _, _),
+  parse(Query, Result), !.
+parse([what|Query], Result) :- parse(Query, Result), !.
+parse([which|Query], Result) :- parse(Query, Result), !.
+
+parse([boy|Query], Result) :-
+  grade(Result, boy, _),
+  parse(Query, Result), !.
+parse([boy|Query], Result) :-
+  grade(_, boy, Result),
+  parse(Query, Result), !.
+
+parse([boys|Query], Result) :-
+  grade(Result, boy, _),
+  parse(Query, Result), !.
+parse([boys|Query], Result) :-
+  grade(_, boy, Result),
+  parse(Query, Result), !.
+
+parse([girl|Query], Result) :-
+  grade(Result, girl, _),
+  parse(Query, Result), !.
+parse([girl|Query], Result) :-
+  grade(_, girl, Result),
+  parse(Query, Result), !.
+
+parse([girls|Query], Result) :-
+  grade(Result, girl, _),
+  parse(Query, Result), !.
+parse([girls|Query], Result) :-
+  grade(_, girl, Result),
+  parse(Query, Result), !.
+
+parse([Word|Query], Result) :-
+  highest_adjective(Word),
+  grade(Result, _, Grade),
+  highest_grade(Grade),
+  parse(Query, Result).
+parse([Word|Query], Result) :-
+  highest_adjective(Word),
+  grade(_, Result, Grade),
+  highest_grade(Grade),
+  parse(Query, Result).
+parse([Word|Query], Result) :-
+  highest_adjective(Word),
+  grade(_, _, Result),
+  highest_grade(Result),
+  parse(Query, Result).
+
+parse([Word|Query], Result) :-
+  lowest_adjective(Word),
+  grade(Result, _, Grade),
+  lowest_grade(Grade),
+  parse(Query, Result).
+parse([Word|Query], Result) :-
+  lowest_adjective(Word),
+  grade(_, Result, Grade),
+  lowest_grade(Grade),
+  parse(Query, Result).
+parse([Word|Query], Result) :-
+  lowest_adjective(Word),
+  grade(_, _, Result),
+  lowest_grade(Result),
+  parse(Query, Result).
+
+parse([above, Grade|Query], Result) :-
+  grade(Result, _, ResultGrade),
+  ResultGrade > Grade,
+  parse(Query, Result).
+parse([above, Grade|Query], Result) :-
+  grade(_, Result, ResultGrade),
+  ResultGrade > Grade,
+  parse(Query, Result).
+parse([above, Grade|Query], Result) :-
+  grade(_, _, Result),
+  Result > Grade,
+  parse(Query, Result).
+
+parse([_|Query], Result) :- parse(Query, Result).
+parse([], Result) :- grade(Result, _, _).
+parse([], Result) :- grade(_, Result, _).
+parse([], Result) :- grade(_, _, Result).
