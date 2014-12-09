@@ -126,8 +126,7 @@ who_has_grade(Gender,Grade,Name) :- bottom_grade(Grade,Low), top_grade(Grade, Hi
 %
 
 get_string(X) :- get_code(Y), get_string_helper([],X,Y).
-% get_string_helper(List,Result, 10) :- reverse(List, Reverse), string_codes(Result, Reverse), !.
-get_string_helper(List,Result, 10) :- reverse(List, Result), !.
+get_string_helper(List,Result, 10) :- reverse(List, Reverse), string_codes(Result, Reverse).
 get_string_helper(List,Result, X) :- get_code(Y), get_string_helper([X|List],Result,Y).
 
 % take input and split based on spaces
@@ -141,15 +140,7 @@ multiple_splits([],Part,Result) :- reverse(Part,Result).
 multiple_splits(List,Part,Result) :- split(List,A,B), multiple_splits(B,[A|Part],Result).
 
 to_string([],Part,Result) :- reverse(Part,Result).
-to_string([H|T],Part,Result) :- atom_codes(Word,H), to_string(T,[Word|Part],Result).
-
-to_array([],Part,Result) :- reverse(Part,Result).
-to_array([H|T],Part,Result) :- string_codes(H,Word), to_array(T,[Word|Part],Result).
-
-do_nlp :- do_nlp_helper(start).
-do_nlp_helper([done]) :- print('good bye').
-do_nlp_helper(Stop) :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],Result), do_nlp_helper(Result).
-
+to_string([H|T],Part,Result) :- string_codes(Word,H), to_string(T,[Word|Part],Result).
 
 % Stage C [30 points]: Improved parsing
 %
@@ -166,5 +157,3 @@ do_nlp_helper(Stop) :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],
 % Count the students that are <gender>
 count_gender(Gender,X) :- grade(_,Gender,_), findall(Person, grade(_,Gender,_),People), length(People, X), !.
 
-
-parse(Parameters)
