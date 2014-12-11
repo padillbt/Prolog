@@ -71,9 +71,6 @@ has_lowest_grade(Gender, Grade, Above, X) :- find_minimum(Gender, Grade, Above, 
 above_grade(Gender, Grade, Student, Result) :- grade(Student,_,Score), have_grade(Gender,Grade,Result), Result > Score.
 above_grade(Gender, Grade, Score, Result) :- \+(grade(Score,_,_)), have_grade(Gender,Grade,Result), Result > Score.
 
-below_grade(Gender, Grade, Result) :- grade(_,Gender,Result), Result < Grade.
-below_Student(Gender, Student, Result) :- grade(Student,_,Grade), grade(_,Gender,Result), Result < Grade.
-
 % Stage A6 [5 points].  Same as above, but now if I say [...,for,girls]
 % it should restrict the search to girls.  If I say [...,for,a,students]
 % it should restrict the grades for students who have a grade in the 90s.
@@ -92,9 +89,6 @@ top_grade(f,59).
 
 have_grade(Gender,Grade, X) :- bottom_grade(Grade,Low), top_grade(Grade, High), grade(_,Gender,X), X > Low, X =< High.
 have_grade(Grade, X) :- bottom_grade(Grade,Low), top_grade(Grade, High), grade(_,_,X), X > Low, X =< High.
-
-% who_has_grade(Gender,Grade,Name) :- bottom_grade(Grade,Low), top_grade(Grade, High), grade(Name,Gender,X), X > Low, X =< High.
-% who_has_grade(Grade,Name) :- bottom_grade(Grade,Low), top_grade(Grade, High), grade(Name,_,X), X > Low, X =< High.
 
 % Stage A7 [5 points].  Add the ability to have unlimited restrictions
 % with "who are".  So I can say
@@ -151,6 +145,7 @@ multiple_splits([],Part,Result) :- reverse(Part,Result).
 multiple_splits(List,Part,Result) :- split(List,A,B), multiple_splits(B,[A|Part],Result).
 
 to_string([],Part,Result) :- reverse(Part,Result).
+to_string([H|T],Part,Result) :- atom_codes(Word,H), atom_number(Word,Number), to_string(T,[Number|Part],Result).
 to_string([H|T],Part,Result) :- atom_codes(Word,H), to_string(T,[Word|Part],Result).
 
 to_array([],Part,Result) :- reverse(Part,Result).
@@ -174,8 +169,8 @@ do_nlp_helper(Query) :- \+(parse(Query,Result)), print(false), print('\n'), do_n
 % Include in the comments a fairly complete description of the kinds
 % of new questions you support and any other features you added.
 
-% Count the students that are <gender>
-count_gender(Gender,X) :- grade(_,Gender,_), findall(Person, grade(_,Gender,_),People), length(People, X), !.
+% Count the students that are <gender> who are <grade> students who are above <grade/student>
+count_query(Gender, Grade, Above, X) :- findall(Score, above_grade(Gender, Grade, Above, Score),Scores), length(Scores,X).
 
 % Parser
 
@@ -203,10 +198,10 @@ grade(d).
 grade(f).
 
 grade_filter(Gender, Grade, Above, Query, Result) :- grade(X), subset([X],Query), above_filter(Gender, X, Above, Query, Result),!.
-grade_filter(Gender, Grade, Above, Query, Result) :- grade(X), \+(subset([X],Query)), above_filter(Gender, Grade, Above, Query, Result).
+grade_filter(Gender, Grade, Above, Query, Result) :- grade(X), \+(subset([X],Query)), above_filter(Gender, Grade, Above, Query, Result),!.
 
 above_filter(Gender, Grade, Above, Query, Result) :- subset([above],Query), find_above_what(Query,Threshold), word_replacement(Gender, Grade, Threshold, Query, Result),!.
-above_filter(Gender, Grade, Above, Query, Result) :- \+(subset([above],Query)), word_replacement(Gender, Grade, Above, Query, Result).
+above_filter(Gender, Grade, Above, Query, Result) :- \+(subset([above],Query)), word_replacement(Gender, Grade, Above, Query, Result),!.
 
 syn(largest,highest).
 syn(best,highest).
@@ -218,9 +213,10 @@ syn(tinniest,lowest).
 word_replacement(Gender, Grade, Above, Query, Result) :- syn(X,Y), replace_in_list(X,Y,Query, Replacement), result_filter(Gender, Grade, Above, Replacement, Result),!.
 word_replacement(Gender, Grade, Above, Query, Result) :- syn(X,Y), \+(replace_in_list(X,Y,Query, Replacement)), result_filter(Gender, Grade, Above, Query, Result),!.
 
-result_filter(Gender, Grade, Above, Query, Result) :- subset([what, highest],Query), find_max(Gender, Grade, Above, Result),!.
-result_filter(Gender, Grade, Above, Query, Result) :- subset([what, lowest],Query), find_minimum(Gender, Grade, Above, Result),!.
-result_filter(Gender, Grade, Above, Query, Result) :- subset([who, highest],Query), has_highest_grade(Gender, Grade, Above, Result),!.
-result_filter(Gender, Grade, Above, Query, Result) :- subset([who, lowest],Query), has_lowest_grade(Gender, Grade, Above, Result),!.
+result_filter(Gender, Grade, Above, Query, Result) :- subset([what, highest],Query), find_max(Gender, Grade, Above, Result).
+result_filter(Gender, Grade, Above, Query, Result) :- subset([what, lowest],Query), find_minimum(Gender, Grade, Above, Result).
+result_filter(Gender, Grade, Above, Query, Result) :- subset([who, highest],Query), has_highest_grade(Gender, Grade, Above, Result).
+result_filter(Gender, Grade, Above, Query, Result) :- subset([who, lowest],Query), has_lowest_grade(Gender, Grade, Above, Result).
+result_filter(Gender, Grade, Above, Query, Result) :- subset([count],Query), count_query(Gender, Grade, Above, Result).
 
 
