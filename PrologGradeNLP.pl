@@ -33,19 +33,21 @@ grade(cathy,girl,81).
 
 % Stage A1 [5 points].  Make the example parse above work.
 
-find_max(X) :- grade(_,_,X), findall(Score, grade(_,_,Score),Scores), forall(member(Score,Scores), Score =< X),!.
-find_max(Gender, X) :- grade(_,Gender,X), findall(Score, grade(_,Gender,Score),Scores), forall(member(Score,Scores), Score =< X),!.
-find_max(Grade, X) :- have_grade(Grade,X), findall(Score, have_grade(Grade,Score),Scores), forall(member(Score,Scores), Score =< X),!.
-find_max(Gender, Grade, X) :- have_grade(Gender, Grade,X), findall(Score, have_grade(Gender, Grade,Score),Scores), forall(member(Score,Scores), Score =< X).
+find_max(Gender, Grade, Above, X) :- findall(Score, above_grade(Gender, Grade, Above, Score),Scores), max(Scores,X).
 
+max([X],X).
+max([X|Xs],X):- max(Xs,Y), X >=Y.
+max([X|Xs],N):- max(Xs,N), N > X.
 
 % Stage A2 [5 points].  Modify the code so that it will also return
 % the lowest grade.
 
-find_minimum(X) :- grade(_,Gender,X), findall(Score, grade(_,Gender,Score),Scores), forall(member(Score,Scores), Score >= X), !.
-find_minimum(Gender, X) :- grade(_,Gender,X), findall(Score, grade(_,Gender,Score),Scores), forall(member(Score,Scores), Score >= X), !.
-find_minimum(Grade, X) :- have_grade(Grade,X), findall(Score, have_grade(Grade,Score),Scores), forall(member(Score,Scores), Score >= X).
-find_minimum(Gender, Grade, X) :- have_grade(Gender, Grade,X), findall(Score, have_grade(Gender, Grade,Score),Scores), forall(member(Score,Scores), Score >= X).
+find_minimum(Gender, Grade, Above, X) :- findall(Score, above_grade(Gender, Grade, Above, Score),Scores), min(Scores, X).
+ 
+min([X],X).    
+min([A,B|T],M) :- (A < B), min([A|T],M).
+min([A,B|T],M) :- (B =< A), min([B|T],M).
+
 
 % Stage A3 [5 points].  Modify the code above so you can use a variety
 % of synomyns for highest/lowest (largest, biggest, best, or whatever).
@@ -55,15 +57,9 @@ find_minimum(Gender, Grade, X) :- have_grade(Gender, Grade,X), findall(Score, ha
 % [who,has,the,highest,grade] and simliar queries (should return a
 % name).  You'll want to be careful to prevent too much duplication.
 
-has_highest_grade(Gender, Grade, X) :- find_max(Gender, Grade, Y), grade(X,Gender,Y).
-has_highest_grade(Gender, X) :- find_max(Gender, Y), grade(X,Gender,Y).
-has_highest_grade(Grade, Y) :- have_grade(Grade,X), findall(Score, have_grade(Grade,X),Scores), forall(member(Score,Scores), Score =< X), grade(Y,_,X),!.
-has_highest_grade(X) :- find_max(Y), grade(X,_,Y).
+has_highest_grade(Gender, Grade, Above, X) :- find_max(Gender, Grade, Above, Y), grade(X,Gender,Y).
 
-has_lowest_grade(Gender, Grade, X) :- find_minimum(Gender, Grade, Y), grade(X,Gender,Y).
-has_lowest_grade(Gender, X) :- find_minimum(Gender, Y), grade(X,Gender,Y).
-has_lowest_grade(Grade, Y) :- have_grade(Grade,X), findall(Score, have_grade(Grade,Score),Scores), forall(member(Score,Scores), Score >= X), grade(Y,_,X), !.
-has_lowest_grade(X) :- find_minimum(Y), grade(X,_,Y) .
+has_lowest_grade(Gender, Grade, Above, X) :- find_minimum(Gender, Grade, Above, Y), grade(X,Gender,Y).
 
 %
 % Stage A5 [5 points].  Modify the code so that you can restrict the
@@ -72,11 +68,8 @@ has_lowest_grade(X) :- find_minimum(Y), grade(X,_,Y) .
 % a name in the db, it should restrict the grades to grades above that
 % student's grade.
 
-above_grade(Gender, Score, Result) :- grade(_,Gender,Result), Result > Score.
-above_grade(Gender, Student, Result) :- grade(Student,_,Grade), grade(_,Gender,Result), Result > Grade.
-
-above_grade(Grade, Score, Result) :- grade(_,Gender,Result), Result > Score.
-above_grade(Grade, Student, Result) :- grade(Student,_,Grade), grade(_,Gender,Result), Result > Grade.
+above_grade(Gender, Grade, Student, Result) :- grade(Student,_,Score), have_grade(Gender,Grade,Result), Result > Score.
+above_grade(Gender, Grade, Score, Result) :- \+(grade(Score,_,_)), have_grade(Gender,Grade,Result), Result > Score.
 
 below_grade(Gender, Grade, Result) :- grade(_,Gender,Result), Result < Grade.
 below_Student(Gender, Student, Result) :- grade(Student,_,Grade), grade(_,Gender,Result), Result < Grade.
@@ -144,7 +137,6 @@ have_grade(Grade, X) :- bottom_grade(Grade,Low), top_grade(Grade, High), grade(_
 %
 
 get_string(X) :- get_code(Y), get_string_helper([],X,Y).
-% get_string_helper(List,Result, 10) :- reverse(List, Reverse), string_codes(Result, Reverse), !.
 get_string_helper(List,Result, 10) :- reverse(List, Result), !.
 get_string_helper(List,Result, X) :- get_code(Y), get_string_helper([X|List],Result,Y).
 
@@ -164,9 +156,10 @@ to_string([H|T],Part,Result) :- atom_codes(Word,H), to_string(T,[Word|Part],Resu
 to_array([],Part,Result) :- reverse(Part,Result).
 to_array([H|T],Part,Result) :- string_codes(H,Word), to_array(T,[Word|Part],Result).
 
-do_nlp :- do_nlp_helper(start).
+do_nlp :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],Result), do_nlp_helper(Result).
 do_nlp_helper([done]) :- print('good bye').
-do_nlp_helper(Stop) :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],Result), do_nlp_helper(Result).
+do_nlp_helper(Query) :- parse(Query,Result), print(Result), print('\n'), do_nlp.
+do_nlp_helper(Query) :- \+(parse(Query,Result)), print(false), print('\n'), do_nlp.
 
 
 % Stage C [30 points]: Improved parsing
@@ -184,66 +177,50 @@ do_nlp_helper(Stop) :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],
 % Count the students that are <gender>
 count_gender(Gender,X) :- grade(_,Gender,_), findall(Person, grade(_,Gender,_),People), length(People, X), !.
 
-exclude([],Query).
-exclude([H|T],Query) :- \+(subset([H],Query)), exclude(T,Query). 
+% Parser
 
-% ?- parse([what,is,the,highest,grade],Result).
+replace_in_list(_,_,[],[]).
+replace_in_list(FromItem,ToItem,[FromItem|Tail],[ToItem|ResultTail]) :- replace_in_list(FromItem,ToItem,Tail,ResultTail).
+replace_in_list(FromItem,ToItem,[Item|Tail],[Item|ResultTail]) :-
+    FromItem \= Item,
+    replace_in_list(FromItem,ToItem,Tail,ResultTail).
 
-parse(Query, Result) :- subset([what,highest,grade, a, girls],Query), exclude([boys],Query), find_max(girl, a, Result),!.
-parse(Query, Result) :- subset([what,highest,grade,b, girls],Query), exclude([boys],Query), find_max(girl, b, Result),!.
-parse(Query, Result) :- subset([what,highest,grade, c, girls],Query), exclude([boys],Query), find_max(girl, c, Result),!.
-parse(Query, Result) :- subset([what,highest,grade,d, girls],Query), exclude([boys],Query), find_max(girl, d, Result),!.
-parse(Query, Result) :- subset([what,highest,grade, f, girls],Query), exclude([boys],Query), find_max(girl, f, Result),!.
+find_above_what([above|[H|T]],H).
+find_above_what([H|T],Result) :- find_above_what(T, Result).
 
-parse(Query, Result) :- subset([what,highest,grade, a, boys],Query), exclude([girls],Query), find_max(boy, a, Result),!.
-parse(Query, Result) :- subset([what,highest,grade,b, boys],Query), exclude([girls],Query), find_max(boy, b, Result),!.
-parse(Query, Result) :- subset([what,highest,grade, c, boys],Query), exclude([girls],Query), find_max(boy, c, Result),!.
-parse(Query, Result) :- subset([what,highest,grade,d, boys],Query), exclude([girls],Query), find_max(boy, d, Result),!.
-parse(Query, Result) :- subset([what,highest,grade, f, boys],Query), exclude([girls],Query), find_max(boy, f, Result),!.
+parse(Query,Result) :- gender_filter(_, _, 0, Query, Result).
 
-parse(Query, Result) :- subset([what,highest,grade,boys],Query), exclude([a,b,c,d,f,girls],Query), find_max(boy,Result),!.
-parse(Query, Result) :- subset([what,highest,grade,girls],Query), exclude([a,b,c,d,f,boys],Query), find_max(girl,Result),!.
-parse(Query, Result) :- subset([what,highest,grade, a],Query), exclude([b,c,d,f,boys,girls],Query), find_max(a, Result),!.
-parse(Query, Result) :- subset([what,highest,grade,b],Query), exclude([a,c,d,f,boys,girls],Query), find_max(b, Result),!.
-parse(Query, Result) :- subset([what,highest,grade, c],Query), exclude([b,a,d,f,boys,girls],Query), find_max(c, Result),!.
-parse(Query, Result) :- subset([what,highest,grade,d],Query), exclude([b,c,a,f,boys,girls],Query), find_max(d, Result),!.
-parse(Query, Result) :- subset([what,highest,grade, f],Query), exclude([b,c,d,a,boys,girls],Query), find_max(f, Result),!.
+plural(boys,boy).
+plural(girls,girl).
 
-parse(Query, Result) :- subset([what,highest,grade],Query), exclude([a,b,c,d,f,boys,girls],Query), find_max(Result),!.
+gender_filter(Gender, Grade, Above, Query, Result) :- plural(X,Y), subset([X],Query), grade_filter(Y, Grade, Above, Query, Result),!.
+gender_filter(Gender, Grade, Above, Query, Result) :- plural(X,Y), \+(subset([X],Query)), grade_filter(Gender, Grade, Above, Query, Result),!.
 
-% largest, biggest, best
+grade(a).
+grade(b).
+grade(c).
+grade(d).
+grade(f).
 
+grade_filter(Gender, Grade, Above, Query, Result) :- grade(X), subset([X],Query), above_filter(Gender, X, Above, Query, Result),!.
+grade_filter(Gender, Grade, Above, Query, Result) :- grade(X), \+(subset([X],Query)), above_filter(Gender, Grade, Above, Query, Result).
 
-% ?- parse([who,has,the,highest,grade],Result).
-parse(Query, Result) :- subset([who,highest,grade],Query), has_highest_grade(Result).
+above_filter(Gender, Grade, Above, Query, Result) :- subset([above],Query), find_above_what(Query,Threshold), word_replacement(Gender, Grade, Threshold, Query, Result),!.
+above_filter(Gender, Grade, Above, Query, Result) :- \+(subset([above],Query)), word_replacement(Gender, Grade, Above, Query, Result).
 
-% largest, biggest, best
-parse(Query, Result) :- subset([who,largest,grade],Query), has_highest_grade(Result).
-parse(Query, Result) :- subset([who,biggest,grade],Query), has_highest_grade(Result).
-parse(Query, Result) :- subset([who,best,grade],Query), has_highest_grade(Result).
+syn(largest,highest).
+syn(best,highest).
+syn(biggest,highest).
+syn(smallest,lowest).
+syn(worst,lowest).
+syn(tinniest,lowest).
 
-%
-%
-%
-%
-%
-%
-%
-%
+word_replacement(Gender, Grade, Above, Query, Result) :- syn(X,Y), replace_in_list(X,Y,Query, Replacement), result_filter(Gender, Grade, Above, Replacement, Result),!.
+word_replacement(Gender, Grade, Above, Query, Result) :- syn(X,Y), \+(replace_in_list(X,Y,Query, Replacement)), result_filter(Gender, Grade, Above, Query, Result),!.
 
-% ?- parse([what,is,the,lowest,grade],Result).
-parse(Query, Result) :- subset([what,lowest,grade],Query), find_minimum(Result).
+result_filter(Gender, Grade, Above, Query, Result) :- subset([what, highest],Query), find_max(Gender, Grade, Above, Result),!.
+result_filter(Gender, Grade, Above, Query, Result) :- subset([what, lowest],Query), find_minimum(Gender, Grade, Above, Result),!.
+result_filter(Gender, Grade, Above, Query, Result) :- subset([who, highest],Query), has_highest_grade(Gender, Grade, Above, Result),!.
+result_filter(Gender, Grade, Above, Query, Result) :- subset([who, lowest],Query), has_lowest_grade(Gender, Grade, Above, Result),!.
 
-% smallest, tinniest, worst
-parse(Query, Result) :- subset([what,smallest,grade],Query), find_minimum(Result).
-parse(Query, Result) :- subset([what,tinniest,grade],Query), find_minimum(Result).
-parse(Query, Result) :- subset([what,worst,grade],Query), find_minimum(Result).
-
-% ?- parse([who,has,the,highest,grade],Result).
-parse(Query, Result) :- subset([who,highest,grade],Query), has_lowest_grade(Result).
-
-% smallest, tinniest, worst
-parse(Query, Result) :- subset([who,smallest,grade],Query), has_lowest_grade(Result).
-parse(Query, Result) :- subset([who,tinniest,grade],Query), has_lowest_grade(Result).
-parse(Query, Result) :- subset([who,worst,grade],Query), has_lowest_grade(Result).
 
