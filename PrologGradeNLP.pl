@@ -166,5 +166,3 @@ do_nlp_helper(Stop) :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],
 % Count the students that are <gender>
 count_gender(Gender,X) :- grade(_,Gender,_), findall(Person, grade(_,Gender,_),People), length(People, X), !.
 
-
-parse(Parameters)
