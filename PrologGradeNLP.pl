@@ -138,7 +138,7 @@ get_string_helper(List,Result, X) :- get_code(Y), get_string_helper([X|List],Res
 get_words(X) :- get_string(Y), string_codes(Y, Z), get_words_helper(Z,X).
 
 split([32|List],[],List).
-split([63],[],List).
+split([63],[],_).
 split([H|List],[H|Part],Remainder) :- split(List,Part,Remainder).
 
 multiple_splits([],Part,Result) :- reverse(Part,Result).
@@ -154,7 +154,7 @@ to_array([H|T],Part,Result) :- string_codes(H,Word), to_array(T,[Word|Part],Resu
 do_nlp :- get_string(X), multiple_splits(X, [], Y), to_string(Y,[],Result), do_nlp_helper(Result).
 do_nlp_helper([done]) :- print('good bye').
 do_nlp_helper(Query) :- parse(Query,Result), print(Result), print('\n'), do_nlp.
-do_nlp_helper(Query) :- \+(parse(Query,Result)), print(false), print('\n'), do_nlp.
+do_nlp_helper(Query) :- \+(parse(Query,_)), print(false), print('\n'), do_nlp.
 
 
 % Stage C [30 points]: Improved parsing
@@ -180,16 +180,16 @@ replace_in_list(FromItem,ToItem,[Item|Tail],[Item|ResultTail]) :-
     FromItem \= Item,
     replace_in_list(FromItem,ToItem,Tail,ResultTail).
 
-find_above_what([above|[H|T]],H).
-find_above_what([H|T],Result) :- find_above_what(T, Result).
+find_above_what([above|[H|_]],H).
+find_above_what([_|T],Result) :- find_above_what(T, Result).
 
 parse(Query,Result) :- gender_filter(_, _, 0, Query, Result).
 
 plural(boys,boy).
 plural(girls,girl).
 
-gender_filter(Gender, Grade, Above, Query, Result) :- plural(X,Y), subset([X],Query), grade_filter(Y, Grade, Above, Query, Result),!.
-gender_filter(Gender, Grade, Above, Query, Result) :- plural(X,Y), \+(subset([X],Query)), grade_filter(Gender, Grade, Above, Query, Result),!.
+gender_filter(_, Grade, Above, Query, Result) :- plural(X,Y), subset([X],Query), grade_filter(Y, Grade, Above, Query, Result),!.
+gender_filter(Gender, Grade, Above, Query, Result) :- plural(X,_), \+(subset([X],Query)), grade_filter(Gender, Grade, Above, Query, Result),!.
 
 grade(a).
 grade(b).
@@ -197,10 +197,10 @@ grade(c).
 grade(d).
 grade(f).
 
-grade_filter(Gender, Grade, Above, Query, Result) :- grade(X), subset([X],Query), above_filter(Gender, X, Above, Query, Result),!.
+grade_filter(Gender, _, Above, Query, Result) :- grade(X), subset([X],Query), above_filter(Gender, X, Above, Query, Result),!.
 grade_filter(Gender, Grade, Above, Query, Result) :- grade(X), \+(subset([X],Query)), above_filter(Gender, Grade, Above, Query, Result),!.
 
-above_filter(Gender, Grade, Above, Query, Result) :- subset([above],Query), find_above_what(Query,Threshold), word_replacement(Gender, Grade, Threshold, Query, Result),!.
+above_filter(Gender, Grade, _, Query, Result) :- subset([above],Query), find_above_what(Query,Threshold), word_replacement(Gender, Grade, Threshold, Query, Result),!.
 above_filter(Gender, Grade, Above, Query, Result) :- \+(subset([above],Query)), word_replacement(Gender, Grade, Above, Query, Result),!.
 
 syn(largest,highest).
@@ -211,7 +211,7 @@ syn(worst,lowest).
 syn(tinniest,lowest).
 
 word_replacement(Gender, Grade, Above, Query, Result) :- syn(X,Y), replace_in_list(X,Y,Query, Replacement), result_filter(Gender, Grade, Above, Replacement, Result),!.
-word_replacement(Gender, Grade, Above, Query, Result) :- syn(X,Y), \+(replace_in_list(X,Y,Query, Replacement)), result_filter(Gender, Grade, Above, Query, Result),!.
+word_replacement(Gender, Grade, Above, Query, Result) :- syn(X,Y), \+(replace_in_list(X,Y,Query,_)), result_filter(Gender, Grade, Above, Query, Result),!.
 
 result_filter(Gender, Grade, Above, Query, Result) :- subset([what, highest],Query), find_max(Gender, Grade, Above, Result).
 result_filter(Gender, Grade, Above, Query, Result) :- subset([what, lowest],Query), find_minimum(Gender, Grade, Above, Result).
