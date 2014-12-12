@@ -212,6 +212,13 @@ average_query(Gender, Grade, Above, X) :-
   length(Scores,Y),
   X is Sum/Y.
 
+% What does <name> need on the <category> to get a <percent>
+% What does the student with the <largest/smallest> grade need on the <category> to get a <percent> (Also allows synonyms of largest/smallest)
+
+desired_grade(Name, Score, Percentage, Result) :-
+  grade(Name,_,Grade),
+  Result is ((100 * Score) - (Grade * (100 - Percentage))) / Percentage.
+
 % Parser
 
 replace_in_list(_,_,[],[]).
@@ -280,10 +287,6 @@ percentage(participation,5).
 percentage(homework,20).
 percentage(final,30).
 
-desired_grade(Name, Score, Percentage, Result) :-
-  grade(Name,_,Grade),
-  Result is ((100 * Score) - (Grade * (100 - Percentage))) / Percentage.
-
 word_replacement(Gender, Grade, Above, Query, Result) :-
   syn(X,Y),
   replace_in_list(X,Y,Query, Replacement),
@@ -294,16 +297,16 @@ word_replacement(Gender, Grade, Above, Query, Result) :-
   result_filter(Gender, Grade, Above, Query, Result),!.
 
 result_filter(Gender, Grade, Above, Query, Result) :-
-  subset([what, highest],Query),
+  subset([what, highest, grade],Query),
   find_max(Gender, Grade, Above, Result).
 result_filter(Gender, Grade, Above, Query, Result) :-
-  subset([what, lowest],Query),
+  subset([what, lowest, grade],Query),
   find_minimum(Gender, Grade, Above, Result).
 result_filter(Gender, Grade, Above, Query, Result) :-
-  subset([who, highest],Query),
+  subset([who, highest, grade],Query),
   has_highest_grade(Gender, Grade, Above, Result).
 result_filter(Gender, Grade, Above, Query, Result) :-
-  subset([who, lowest],Query),
+  subset([who, lowest, grade],Query),
   has_lowest_grade(Gender, Grade, Above, Result).
 result_filter(Gender, Grade, Above, Query, Result) :-
   subset([count],Query),
@@ -312,19 +315,25 @@ result_filter(Gender, Grade, Above, Query, Result) :-
   subset([average],Query),
   average_query(Gender, Grade, Above, Result).
 result_filter(_, _, _, Query, Result) :-
+  subset([need,highest], Query),
+  has_highest_grade(_, _, 0, Name),
+  find_get_a_what(Query, Score),
+  percentage(X,Percentage),
+  subset([X],Query),
+  desired_grade(Name, Score, Percentage, Result).
+result_filter(_, _, _, Query, Result) :-
+  subset([need,lowest], Query),
+  has_lowest_grade(_, _, 0, Name),
+  find_get_a_what(Query, Score),
+  percentage(X,Percentage),
+  subset([X],Query),
+  desired_grade(Name, Score, Percentage, Result).
+result_filter(_, _, _, Query, Result) :-
   subset([need], Query),
   find_does_who(Query, Name),
   find_get_a_what(Query, Score),
   percentage(X,Percentage),
   subset([X],Query),
   desired_grade(Name, Score, Percentage, Result).
-result_filter(_, _, _, Query, Result) :-
-  subset([Qualifier,need], Query),
-  syn(Qualifier, highest),
-  has_highest_grade(
-  find_does_who(Query, Name),
-  find_get_a_what(Query, Score),
-  percentage(X,Percentage),
-  subset([X],Query),
-  desired_grade(Name, Score, Percentage, Result).
+
 
