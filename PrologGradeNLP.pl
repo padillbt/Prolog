@@ -170,7 +170,17 @@ do_nlp_helper(Query) :- \+(parse(Query,_)), print(false), print('\n'), do_nlp.
 % of new questions you support and any other features you added.
 
 % Count the students that are <gender> who are <grade> students who are above <grade/student>
+% You can include as many options as indicated above.
+
+sum_list([],Count, Count).
+sum_list([H|T],Count, Result) :- Sum is Count + H, sum_list(T,Sum,Result).
+
 count_query(Gender, Grade, Above, X) :- findall(Score, above_grade(Gender, Grade, Above, Score),Scores), length(Scores,X).
+
+% What is the class average for students that are <gender> who are <grade> students who are above <grade/student>
+% You can include as many options as indicated above.
+
+average_query(Gender, Grade, Above, X) :- findall(Score, above_grade(Gender, Grade, Above, Score),Scores), sum_list(Scores,0,Sum), length(Scores,Y), X is Sum/Y.
 
 % Parser
 
@@ -218,5 +228,6 @@ result_filter(Gender, Grade, Above, Query, Result) :- subset([what, lowest],Quer
 result_filter(Gender, Grade, Above, Query, Result) :- subset([who, highest],Query), has_highest_grade(Gender, Grade, Above, Result).
 result_filter(Gender, Grade, Above, Query, Result) :- subset([who, lowest],Query), has_lowest_grade(Gender, Grade, Above, Result).
 result_filter(Gender, Grade, Above, Query, Result) :- subset([count],Query), count_query(Gender, Grade, Above, Result).
+result_filter(Gender, Grade, Above, Query, Result) :- subset([average],Query), average_query(Gender, Grade, Above, Result).
 
 
